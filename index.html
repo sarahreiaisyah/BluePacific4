@@ -3,30 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <body>
+  <title>My Socioeconomic Data Visualization</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 40px;
+      background: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    #chart {
+      margin-top: 40px;
+    }
+    .tooltip {
+      position: absolute;
+      padding: 8px 12px;
+      background: #333;
+      color: #fff;
+      border-radius: 4px;
+      pointer-events: none;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    footer {
+      margin-top: 60px;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
   <h1>My Socioeconomic Data Visualization</h1>
-  
+
   <p>
-    This visualization shows socioeconomic indicator trends across different regions from 2009 until 2023 (GEO_PICT).
-    The data indicates that citizens from New Caledonia and Vanuatu have the greatest impact on global Resources and Economic Development, likely due to their status as major maritime nations.  
+    This visualization shows socioeconomic indicator trends across different regions from 2009 until 2023 (<strong>GEO_PICT</strong>).
+    The data indicates that citizens from <strong>New Caledonia</strong> and <strong>Vanuatu</strong> have the greatest impact on global resources and economic development, likely due to their status as major maritime nations.
   </p>
 
   <div id="chart"></div>
+  <div class="tooltip" id="tooltip"></div>
+
+  <footer>
+    <p>
+      Created by Rei Aisyah • Data from Blue Pacific 2050 • 
+      <a href="https://github.com/yourusername/yourrepo" target="_blank">View source on GitHub</a>
+    </p>
+  </footer>
+
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="script.js"></script>
+  <script>
+    const margin = {top: 30, right: 30, bottom: 100, left: 60},
+          width = 900 - margin.left - margin.right,
+          height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("#chart")
+      .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const tooltip = d3.select("#tooltip");
+
+    d3.json("data.json").then(data => {
+      const grouped = Array.from(
+        d3.group(data, d => d.GEO_PICT),
+        ([key, values]) => ({
+          GEO_PICT: key,
+          mean_value: d3.mean(values, d => +d.OBS_VALUE_WINS)
+        })
+      ).sort((a, b) => d3.descending(a.mean_value, b.mean_value));
+
+      const x = d3.scaleBand()
+        .domain(grouped.map(d => d.GEO_PICT))
+        .range([0, width])
+        .padding(0.2);
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(grouped, d => d.mean_value)]).nice()
+        .range([height, 0]);
+
+      svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+          .attr("transform", "rotate(-45)")
+          .style("text-anchor", "end");
+
+      svg.append("g")
+        .call(d3.axisLeft(y));
+
+      svg.selectAll("rect")
+        .data(grouped)
+        .enter()
+        .append("rect")
+          .attr("x", d => x(d.GEO_PICT))
+          .attr("y", d => y(d.mean_value))
+          .attr("width", x.bandwidth())
+          .attr("height", d => height - y(d.mean_value))
+          .attr("fill", "#69b3a2")
+          .on("mousemove", (event, d) => {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                   .style("top", (event.pageY - 28) + "px")
+                   .style("opacity", 1)
+                   .html(`<strong>${d.GEO_PICT}</strong><br>Avg: ${d.mean_value.toFixed(2)}`);
+          })
+          .on("mouseout", () => {
+            tooltip.style("opacity", 0);
+          });
+    });
+  </script>
 </body>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <h1>My Socioeconomic Data Visualization</h1>
-  <div id="chart"></div>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="script.js"></script>
-</body>
-<footer>
-  <p>
-    Created by Rei Aisyah • Data from Blue Pacific 2050 • 
-    <a href="https://github.com/yourusername/yourrepo" target="_blank">View source on GitHub</a>
-  </p>
-</footer>
 </html>
