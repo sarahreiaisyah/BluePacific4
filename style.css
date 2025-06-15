@@ -1,1 +1,7 @@
-style
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+#chart {
+  margin-top: 40px;
+}
